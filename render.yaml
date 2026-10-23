@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: derrick-piano-cave-converter
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CONVERSION_SERVICE_TOKEN
+        generateValue: true
+      - key: CONVERSION_DATA_DIR
+        value: /data
+      - key: MEDIA_ALLOWED_HOSTS
+        value: derrickpianocave.com

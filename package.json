@@ -1,0 +1,1 @@
+{"name":"derrick-piano-cave-conversion-service","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"start":"node server.mjs"}}
