@@ -8,4 +8,4 @@ Only this folder belongs in the converter repository. It contains no credentials
 
 After deployment, privately connect CONVERSION_SERVICE_URL and matching CONVERSION_SERVICE_TOKEN to the existing studio server. Never put the token in frontend JavaScript or chat.
 
-Uploads and explicitly authorized direct media are supported. Direct YouTube retrieval is enabled with yt-dlp for owned or permitted recordings. YouTube may block the server; restricted or unavailable sources fail clearly. No cookies, proxies, sign-in or access-control bypass is configured.
+Uploads and explicitly authorized direct media are supported. Direct YouTube retrieval is enabled with yt-dlp for owned or permitted recordings. YouTube may block the server; restricted or unavailable sources fail clearly. A private owner-only session test is supported through a Render Secret File named youtube-cookies.txt. No session is included in the repository. Public visitors cannot use the owner session. No proxies or access-control bypass is configured.

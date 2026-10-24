@@ -31,14 +31,14 @@ export function audioSummary(info,maxDuration=1800){
  formats.sort((a,b)=>(Number(b.abr)||0)-(Number(a.abr)||0));
  return {title:String(info.title||'YouTube Recording').slice(0,300),duration:info.duration,audioFormats:formats.map(f=>({formatId:String(f.format_id),ext:String(f.ext||''),codec:String(f.acodec),bitrate:Number(f.abr)||null})),selectedFormatId:String(formats[0].format_id)};
 }
-export async function extractStreamInfo({id,binary='yt-dlp',signal,maxDuration=1800,runner=youtubeProcess}){
+export async function extractStreamInfo({id,binary='yt-dlp',signal,maxDuration=1800,cookiesFile,runner=youtubeProcess}){
  if(!validVideoId(id))throw new ConversionError('INVALID_YOUTUBE_URL','validation','Choose a valid YouTube video.');
- const output=await runner({binary,args:[...common,'--skip-download','--dump-single-json','--','https://www.youtube.com/watch?v='+id],stage:'metadata',signal});
+ const output=await runner({binary,args:[...common,...(cookiesFile?['--cookies',cookiesFile]:[]),'--skip-download','--dump-single-json','--','https://www.youtube.com/watch?v='+id],stage:'metadata',signal});
  let info;try{info=JSON.parse(output)}catch{throw new ConversionError('METADATA_INVALID','metadata','YouTube did not return valid stream metadata.')}return audioSummary(info,maxDuration);
 }
-export async function downloadYoutube({id,target,signal,maxBytes=50*1024*1024,maxDuration=1800,onBytes=()=>{},onMetadata=()=>{},onStage=()=>{},binary='yt-dlp',runner=youtubeProcess}){
- onStage('Extracting YouTube stream metadata','metadata');const summary=await extractStreamInfo({id,binary,signal,maxDuration,runner});await onMetadata(summary);
+export async function downloadYoutube({id,target,signal,maxBytes=50*1024*1024,maxDuration=1800,onBytes=()=>{},onMetadata=()=>{},onStage=()=>{},binary='yt-dlp',cookiesFile,runner=youtubeProcess}){
+ onStage('Extracting YouTube stream metadata','metadata');const summary=await extractStreamInfo({id,binary,signal,maxDuration,cookiesFile,runner});await onMetadata(summary);
  onStage('Downloading selected YouTube audio stream','download');
- await runner({binary,args:[...common,'--no-part','--no-continue','--no-mtime','--max-filesize',String(maxBytes),'--match-filter','!is_live & duration <= '+maxDuration,'-f',summary.selectedFormatId,'-o',target,'--','https://www.youtube.com/watch?v='+id],stage:'download',signal,target,maxBytes,onBytes});
+ await runner({binary,args:[...common,...(cookiesFile?['--cookies',cookiesFile]:[]),'--no-part','--no-continue','--no-mtime','--max-filesize',String(maxBytes),'--match-filter','!is_live & duration <= '+maxDuration,'-f',summary.selectedFormatId,'-o',target,'--','https://www.youtube.com/watch?v='+id],stage:'download',signal,target,maxBytes,onBytes});
  const stat=await fs.stat(target).catch(()=>null);if(!stat?.size||stat.size>maxBytes)throw new ConversionError('MEDIA_RETRIEVAL_FAILED','download','No usable audio file was retrieved within the conversion limits.');return stat.size;
 }
