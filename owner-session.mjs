@@ -12,6 +12,6 @@ export function youtubeCookieJar(text){
  return '# Netscape HTTP Cookie File\n'+rows.join('\n')+'\n';
 }
 export async function createJobSession(source,target){
- let text;try{text=await fs.readFile(source,'utf8')}catch{throw new ConversionError('OWNER_SESSION_MISSING','owner-auth','The owner must configure a private YouTube session file before this test.');}
+ let text;try{text=await fs.readFile(source,'utf8')}catch(error){throw new ConversionError(error.code==='ENOENT'?'OWNER_SESSION_MISSING':'OWNER_SESSION_UNREADABLE','owner-auth',error.code==='ENOENT'?'The private YouTube session file is not mounted at the configured path.':'The application cannot read the private YouTube session file.',{diagnostic:'Session file read failed with filesystem code '+(error.code||'UNKNOWN')});}
  await fs.writeFile(target,youtubeCookieJar(text),{flag:'wx',mode:0o600});return target;
 }
