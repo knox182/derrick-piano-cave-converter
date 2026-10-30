@@ -12,12 +12,12 @@ export function scoreFormat(bytes){
  if(/^GIF8[79]a$/.test(bytes.subarray(0,6).toString()))return 'gif';
  throw Error('Use a PDF, PNG, JPEG, TIFF, BMP or GIF notation source.');
 }
-export async function runOpticalReader({binary,input,output,signal,timeout=900000}){
+export async function runOpticalReader({binary,input,output,signal,timeout=1800000}){
  await fs.mkdir(output,{recursive:true});
  await new Promise((resolve,reject)=>{
   const child=spawn(binary,['-batch','-transcribe','-export','-swap','-output',output,'--',input],{shell:false,windowsHide:true,signal,env:{...process.env,JAVA_TOOL_OPTIONS:process.env.JAVA_TOOL_OPTIONS||'-Xmx768m -Djava.awt.headless=true'}});let log='';
-  const timer=setTimeout(()=>child.kill(),timeout);for(const stream of [child.stdout,child.stderr])stream?.on('data',chunk=>{log=(log+chunk).slice(-12000)});
-  child.on('error',e=>{clearTimeout(timer);reject(e)});child.on('close',code=>{clearTimeout(timer);code===0?resolve():reject(Object.assign(Error(signal?.aborted?'Score reading cancelled.':/OutOfMemory|Java heap space|GC overhead|insufficient memory/i.test(log)?'This score exceeds the reader’s available memory.':'The optical reader could not complete this score.'),{readerDiagnostic:log.split(/\r?\n/).filter(line=>/Exception|Error|Caused by|not found|Cannot|unable|memory/i.test(line)).slice(-8).join('\n'),readerExitCode:code}))});
+  let timedOut=false;const timer=setTimeout(()=>{timedOut=true;child.kill()},timeout);for(const stream of [child.stdout,child.stderr])stream?.on('data',chunk=>{log=(log+chunk).slice(-12000)});
+  child.on('error',e=>{clearTimeout(timer);reject(e)});child.on('close',code=>{clearTimeout(timer);code===0?resolve():reject(Object.assign(Error(signal?.aborted?'Score reading cancelled.':timedOut?'This score exceeded the reader’s '+Math.round(timeout/60000)+'-minute processing limit. Your original remains saved.':/OutOfMemory|Java heap space|GC overhead|insufficient memory/i.test(log)?'This score exceeds the reader’s available memory.':'The optical reader could not complete this score.'),{readerDiagnostic:log.split(/\r?\n/).filter(line=>/Exception|Error|Caused by|not found|Cannot|unable|memory/i.test(line)).slice(-8).join('\n'),readerExitCode:code}))});
  });
  const files=[];async function walk(dir){for(const entry of await fs.readdir(dir,{withFileTypes:true})){const file=path.join(dir,entry.name);if(entry.isDirectory())await walk(file);else if(/\.(mxl|musicxml|xml)$/i.test(entry.name)&&entry.name!=='container.xml')files.push(file)}}await walk(output);
  const scores=files.filter(f=>/\.(mxl|musicxml)$/i.test(f));const selected=scores.length?scores:files;if(!selected.length)throw Error('No readable notation was found. The original source remains saved.');
